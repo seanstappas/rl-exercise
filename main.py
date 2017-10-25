@@ -37,6 +37,11 @@ ACTIONS = {
 NUM_EPISODES = 1000
 
 
+N = {}
+N_e = 5
+UNEXPLORED_REWARD = 5
+
+
 def get_actions():
     return ACTIONS.keys()
 
@@ -163,6 +168,10 @@ def q_update(s, a, s_next):
     Q[s, a] = Q[s, a] + ALPHA * (R[s] + GAMMA * get_max_q(s_next) - Q[s, a])
 
 
+def q_update_unexplored(s, a, s_next):
+    Q[s, a] = Q[s, a] + ALPHA * N.get((s, a), 0) * (R[s] + GAMMA * get_max_q(s_next) - Q[s, a])
+
+
 def choose_greedy_next_state_q(s):
     actions, next_states = get_valid_actions_and_next_states(s)
     if random.random() < EPSILON:
@@ -188,6 +197,22 @@ def print_q():
     print()
 
 
+def choose_next_state_q(s):
+    actions, next_states = get_valid_actions_and_next_states(s)
+    return get_state_action_with_max_q_unexplored(s, actions, next_states)
+
+
+def get_state_action_with_max_q_unexplored(s, actions, next_states):
+    max_q = float('-inf')
+    max_action = None
+    for a in actions:
+        q = UNEXPLORED_REWARD if N.get((s, a), 0) < N_e else Q[s, a]
+        if q > max_q:
+            max_q = q
+            max_action = a
+    return result(s, max_action), max_action
+
+
 def q1():
     """TD Learning"""
     initialize_rewards()
@@ -196,7 +221,6 @@ def q1():
         print('Episode {}'.format(i))
         s = (1, 1)
         while not terminal_state(s):
-            # print_state(s)
             s_next = choose_random_next_state(s)
             td_update(s, s_next)
             s = s_next
@@ -211,7 +235,6 @@ def q2():
         print('Episode {}'.format(i))
         s = (1, 1)
         while not terminal_state(s):
-            # print_state(s)
             s_next = choose_greedy_next_state_td(s)
             td_update(s, s_next)
             s = s_next
@@ -226,15 +249,30 @@ def q4():
         print('Episode {}'.format(i))
         s = (1, 1)
         while not terminal_state(s):
-            # print(s)
-            # print_state(s)
             s_next, a = choose_greedy_next_state_q(s)
             q_update(s, a, s_next)
             s = s_next
         print_q()
 
 
+def q5():
+    """Greedy Q-learning with favoring of unexplored states"""
+    initialize_rewards()
+    initialize_q()
+    for i in range(NUM_EPISODES):
+        print('Episode {}'.format(i))
+        s = (1, 1)
+        while not terminal_state(s):
+            print(s)
+            s_next, a = choose_next_state_q(s)
+            N[s, a] = N.get((s, a), 0) + 1
+            q_update(s, a, s_next)
+            s = s_next
+        print_q()
+
+
 if __name__ == '__main__':
-    q1()
-    q2()
-    q4()
+    # q1()
+    # q2()
+    # q4()
+    q5()
